@@ -55,6 +55,7 @@ jobs:
         python train.py --dataset twitter-amazonhelp
         python train.py --dataset twitter-applesupport
         python train.py --dataset twitter-spotifycares
+        for x in .save/*":"*; do mv "$x" "${x//:/-}"; done
     - name: Archive trained models
       uses: actions/upload-artifact@v2
       with:
