@@ -1,0 +1,73 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python application
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        # This path is specific to Ubuntu
+        path: ~/.cache/pip
+        # Look to see if there is a cache hit for the corresponding requirements file
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          ${{ runner.os }}-
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install wheel
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        python -m spacy download en
+    - name: Fetch training data
+      run: |
+        mkdir -p download
+        mkdir -p download/training-data
+        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AmazonHelp-preprocessed-183.xlsx?raw=true --content-disposition
+        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AppleSupport-preprocessed-116.xlsx?raw=true --content-disposition
+        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-SpotifyCares-preprocessed-56.xlsx?raw=true --content-disposition
+    - name: Fetch GloVe
+      run: |
+        mkdir -p .vector_cache
+        wget -P download https://nlp.stanford.edu/data/glove.twitter.27B.zip
+        unzip download/glove.twitter.27B.zip -d .vector_cache
+    - name: Run
+      run: |
+        python datasets/twitter_customer_support/format.py --data-path='download/training-data'
+        python train.py --dataset twitter-amazonhelp --save-every-epoch
+        python train.py --dataset twitter-applesupport --save-every-epoch
+        python train.py --dataset twitter-spotifycares --save-every-epoch
+        dir_amazonhelp=$(find .save -name \*amazonhelp\* -type d -maxdepth 1 -print | head -n1)
+        python replay_conversations.py --filename='download/training-data/twcs-AmazonHelp-preprocessed-183.xlsx' --model-path=$dir_amazonhelp --epoch 100
+        dir_applesupport=$(find .save -name \*applesupport\* -type d -maxdepth 1 -print | head -n1)
+        python replay_conversations.py --filename='download/training-data/twcs-AppleSupport-preprocessed-116.xlsx' --model-path=$dir_applesupport --epoch 100
+        dir_spotifycares=$(find .save -name \*spotifycares\* -type d -maxdepth 1 -print | head -n1)
+        python replay_conversations.py --filename='download/training-data/twcs-SpotifyCares-preprocessed-56.xlsx' --model-path=$dir_spotifycares --epoch 100
+    - name: Archive trained models
+      uses: actions/upload-artifact@v2
+      with:
+        name: models
+        path: .save
+    - name: Archive replayed training conversations
+      uses: actions/upload-artifact@v2
+      with:
+        name: replayed
+        path: data/replayed
