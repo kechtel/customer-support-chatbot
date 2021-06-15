@@ -1,0 +1,55 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python application
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        # This path is specific to Ubuntu
+        path: ~/.cache/pip
+        # Look to see if there is a cache hit for the corresponding requirements file
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          ${{ runner.os }}-
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Fetch training data
+      run: |
+        mkdir -p download
+        mkdir -p download/training-data
+        wget -O download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AmazonHelp-preprocessed-183.xlsx?raw=true
+        wget -O download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AppleSupport-preprocessed-116.xlsx?raw=true
+        wget -O download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-SpotifyCares-preprocessed-56.xlsx?raw=true
+    - name: Fetch GloVe
+      run: |
+        mkdir -p .vector_cache
+        wget -O download https://nlp.stanford.edu/data/glove.twitter.27B.zip
+        unzip download/glove.twitter.27B.zip -d .vector_cache
+    - name: Run
+      run: |
+        python datasets/twitter_customer_support/format.py --data-path='download/training-data'
+        python train.py --dataset twitter-amazonhelp
+        python train.py --dataset twitter-applesupport
+        python train.py --dataset twitter-spotifycares
