@@ -39,13 +39,13 @@ jobs:
       run: |
         mkdir -p download
         mkdir -p download/training-data
-        wget -O download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AmazonHelp-preprocessed-183.xlsx?raw=true
-        wget -O download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AppleSupport-preprocessed-116.xlsx?raw=true
-        wget -O download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-SpotifyCares-preprocessed-56.xlsx?raw=true
+        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AmazonHelp-preprocessed-183.xlsx?raw=true
+        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AppleSupport-preprocessed-116.xlsx?raw=true
+        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-SpotifyCares-preprocessed-56.xlsx?raw=true
     - name: Fetch GloVe
       run: |
         mkdir -p .vector_cache
-        wget -O download https://nlp.stanford.edu/data/glove.twitter.27B.zip
+        wget -P download https://nlp.stanford.edu/data/glove.twitter.27B.zip
         unzip download/glove.twitter.27B.zip -d .vector_cache
     - name: Run
       run: |
