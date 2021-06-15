@@ -102,8 +102,8 @@ def parse_args():
     if not args.embedding_size:
         args.embedding_size = embedding_size_from_name(args.embedding_type)
 
-    # add timestamp to save_path
-    args.save_path += os.path.sep + datetime.now().strftime("%Y-%m-%d-%H:%M")
+    # add timestamp and dataset to save_path
+    args.save_path += os.path.sep + datetime.now().strftime("%Y-%m-%d-%H-%M") + '-' + args.dataset
 
     print(args)
     return args

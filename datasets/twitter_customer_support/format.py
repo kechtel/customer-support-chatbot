@@ -146,7 +146,7 @@ def create_all_dataset(df, path):
 
 def main():
     parser = argparse.ArgumentParser(description='Script for formatting training data for seq2seq chatbot.')
-    parser.add_argument('--data-path', help='Folder where to find training data.')
+    parser.add_argument('--data-path', help='Path where to find training data.')
     args = parser.parse_args()
 
     if not os.path.exists('data'):
