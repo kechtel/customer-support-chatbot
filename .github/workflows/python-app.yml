@@ -52,9 +52,9 @@ jobs:
     - name: Run
       run: |
         python datasets/twitter_customer_support/format.py --data-path='download/training-data'
-        python train.py --dataset twitter-amazonhelp
-        python train.py --dataset twitter-applesupport
-        python train.py --dataset twitter-spotifycares
+        python train.py --dataset twitter-amazonhelp --save-every-epoch
+        python train.py --dataset twitter-applesupport --save-every-epoch
+        python train.py --dataset twitter-spotifycares --save-every-epoch
         dir_amazonhelp=$(find .save -name \*amazonhelp\* -type d -maxdepth 1 -print | head -n1)
         python replay_conversations.py --filename='download/training-data/twcs-AmazonHelp-preprocessed-183.xlsx' --model-path=$dir_amazonhelp --epoch 100
         dir_applesupport=$(find .save -name \*applesupport\* -type d -maxdepth 1 -print | head -n1)
@@ -66,3 +66,8 @@ jobs:
       with:
         name: models
         path: .save
+    - name: Archive replayed training conversations
+      uses: actions/upload-artifact@v2
+      with:
+        name: replayed
+        path: data/replayed
