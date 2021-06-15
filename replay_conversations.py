@@ -1,6 +1,5 @@
 import argparse
 import os
-from datetime import datetime
 
 import pandas as pd
 import torch
@@ -54,4 +53,17 @@ if __name__ == '__main__':
     df = pd.read_excel(args.filename)
     df['response'] = df.apply(
         lambda x: model(x['text'], sampling_strategy='greedy', max_seq_len=50) if x['inbound'] else '', axis=1)
+
+    df['text'] = df.apply(lambda x: '' if not x['inbound'] else x['text'], axis=1)
+
+    df['text'] = df.apply(
+        lambda x: df[(df['main_tweet_id'] == x['main_tweet_id'])
+                     & (df['created_at'] < x['created_at'])
+                     & (df['inbound'])].sort_values(by='created_at', ascending=False)['response'].values[0]
+        if len(df[(df['main_tweet_id'] == x['main_tweet_id']) & (df['created_at'] < x['created_at'])
+                  & (df['inbound'])].sort_values(by='created_at', ascending=False)['response'].values) > 0
+           and not x['inbound'] else x['text'], axis=1)
+
+    df = df.drop('response', axis=1)
+
     df.to_excel(os.path.join('data', 'replayed', args.filename.split('/')[-1].replace('.xlsx', '') + '-replayed.xlsx'))
