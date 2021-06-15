@@ -41,9 +41,9 @@ jobs:
       run: |
         mkdir -p download
         mkdir -p download/training-data
-        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AmazonHelp-preprocessed-183.xlsx?raw=true
-        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AppleSupport-preprocessed-116.xlsx?raw=true
-        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-SpotifyCares-preprocessed-56.xlsx?raw=true
+        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AmazonHelp-preprocessed-183.xlsx?raw=true --content-disposition
+        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-AppleSupport-preprocessed-116.xlsx?raw=true --content-disposition
+        wget -P download/training-data https://github.com/kechtel/ericsson/blob/main/data/preprocessed/twcs-SpotifyCares-preprocessed-56.xlsx?raw=true --content-disposition
     - name: Fetch GloVe
       run: |
         mkdir -p .vector_cache
