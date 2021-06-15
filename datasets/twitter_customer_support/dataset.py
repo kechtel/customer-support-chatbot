@@ -1,4 +1,5 @@
 from torchtext import data
+from .field import Field
 from constants import SOS_TOKEN, EOS_TOKEN, PAD_TOKEN
 from util import Metadata
 from . import DATA_FOLDER
@@ -15,7 +16,7 @@ def load_field():
     """
     Loads field for twitter dataset.
     """
-    return data.Field(init_token=SOS_TOKEN, eos_token=EOS_TOKEN, pad_token=PAD_TOKEN,
+    return Field(init_token=SOS_TOKEN, eos_token=EOS_TOKEN, pad_token=PAD_TOKEN,
                       tokenize='spacy', lower=True)
 
 

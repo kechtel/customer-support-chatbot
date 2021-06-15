@@ -1,12 +1,19 @@
+import argparse
+import os
+import re
+
+import emoji
+import fasttext
 import pandas as pd
 import preprocessor as p
-import os
-import emoji
-import re
-import spacy
 from sklearn.model_selection import train_test_split
-from spacy_cld import LanguageDetector
-from . import DATA_FOLDER
+
+model = fasttext.load_model('lid.176.ftz')
+
+
+def parse_filename(filename):
+    _, company, _, tweets = filename.split('.')[0].split('-')
+    return company, tweets
 
 
 def id2text(df, x):
@@ -24,7 +31,7 @@ def clean_tweet(tweet):
     p.set_options(p.OPT.EMOJI, p.OPT.MENTION, p.OPT.RESERVED, p.OPT.SMILEY, p.OPT.NUMBER, p.OPT.HASHTAG, p.OPT.URL)
     clean = p.tokenize(clean)
     clean = re.sub(r'\$HASHTAG\$', '<hashtag>', clean)
-    clean = re.sub(r'\$URL\$', '<url>', clean)
+    clean = re.sub(r'\$URL\$', 'https://t.co/chatbot', clean)
 
     # preprocessor doesn't seem to clean all emojis so we run text trough emoji regex to clean leftovers
     clean = re.sub(emoji.get_emoji_regexp(), '', clean)
@@ -45,14 +52,11 @@ def clean_tweet(tweet):
     return clean
 
 
-def set_empty_if_not_english(nlp, x):
-    doc = nlp(x)
-    # TODO tweets with no language tend to be valid, but they also tend to be gibberish, filtering for now
-    # TODO don't filter scotish, don't filter danish with "icloud" in it (for some reason every tweet with icloud in it is classified as danish), filtering for now
-    return x if doc._.languages and ('en' in doc._.language_scores and doc._.language_scores['en'] >= 0.80) else ''
+def set_empty_if_not_english(x):
+    return x if model.predict(x.replace('\n', ''))[0][0] == '__label__en' else ''
 
 
-def qa_from_author(df, nlp, author_id):
+def qa_from_author(df, author_id):
     """
     Creates qa dataset (in form of dataframe) from all tweets of author (identified by author_id)
 
@@ -83,8 +87,8 @@ def qa_from_author(df, nlp, author_id):
 
     # filter all languages which are not english (non-english tweets will be set to empty string and then filtered at
     # the end of this method)
-    support_service.loc[:, 'question'] = support_service.question.apply(lambda x: set_empty_if_not_english(nlp, x))
-    support_service.loc[:, 'answer'] = support_service.answer.apply(lambda x: set_empty_if_not_english(nlp, x))
+    support_service.loc[:, 'question'] = support_service.question.apply(lambda x: set_empty_if_not_english(x))
+    support_service.loc[:, 'answer'] = support_service.answer.apply(lambda x: set_empty_if_not_english(x))
 
     # remove all QA pairs where Q or A are empty or contain only dot (.)
     support_service = support_service[~(support_service.question == '') & ~(support_service.answer == '')]
@@ -108,24 +112,24 @@ def split_dataset(path, random_state=287):
     test.to_csv(dir_name + os.path.sep + file_name + '-test.tsv', sep='\t', index=False)
 
 
-def create_dataset(df, author_ids, nlp):
-    dataset = qa_from_author(df, nlp, author_ids[0])
+def create_dataset(df, author_ids):
+    dataset = qa_from_author(df, author_ids[0])
     for author_id in author_ids[1:]:
-        dataset = pd.concat([dataset, qa_from_author(df, nlp, author_id)])
+        dataset = pd.concat([dataset, qa_from_author(df, author_id)])
     return dataset
 
 
-def create_and_write_dataset(df, nlp, author_id, path):
+def create_and_write_dataset(df, author_id, path):
     """
     Creates tsv dataset which contains only Apple support conversations with customers.
     """
-    dataset = create_dataset(df, [author_id], nlp)
+    dataset = create_dataset(df, [author_id])
     dataset_path = path + author_id.lower() + '.tsv'
     dataset.to_csv(dataset_path, sep='\t', index=False)
     split_dataset(dataset_path)
 
 
-def create_all_dataset(df, nlp, path):
+def create_all_dataset(df, path):
     """
     Creates tsv dataset which contains many customer support services from dataset. Included support service authors are
     'AppleSupport', 'AmazonHelp', 'Uber_Support', 'Delta', 'SpotifyCares', 'Tesco', 'AmericanAir',
@@ -133,7 +137,7 @@ def create_all_dataset(df, nlp, path):
     """
     author_ids = ['AppleSupport', 'AmazonHelp', 'Uber_Support', 'Delta', 'SpotifyCares', 'Tesco', 'AmericanAir',
                   'comcastcares', 'TMobileHelp', 'British_Airways', 'SouthwestAir', 'Ask_Spectrum', 'hulu_support']
-    dataset = create_dataset(df, author_ids, nlp)
+    dataset = create_dataset(df, author_ids)
     dataset = dataset.sample(frac=1)  # shuffle dataset
     dataset_path = path + 'twitter-all' + '.tsv'
     dataset.to_csv(dataset_path, sep='\t', index=False)
@@ -141,17 +145,17 @@ def create_all_dataset(df, nlp, path):
 
 
 def main():
-    df = pd.read_csv(DATA_FOLDER + 'twcs.csv')
-    df.sort_values(by='tweet_id', inplace=True)
+    parser = argparse.ArgumentParser(description='Script for formatting training data for seq2seq chatbot.')
+    parser.add_argument('--data-path', help='Folder where to find training data.')
+    args = parser.parse_args()
 
-    nlp = spacy.load('en')
-    nlp.add_pipe(LanguageDetector())
+    if not os.path.exists('data'):
+        os.mkdir('data')
 
-    create_and_write_dataset(df, nlp, 'AppleSupport', DATA_FOLDER)
-    create_and_write_dataset(df, nlp, 'AmazonHelp', DATA_FOLDER)
-    create_and_write_dataset(df, nlp, 'Uber_Support', DATA_FOLDER)
-    create_and_write_dataset(df, nlp, 'Delta', DATA_FOLDER)
-    create_and_write_dataset(df, nlp, 'SpotifyCares', DATA_FOLDER)
+    for file in os.listdir(args.data_path):
+        df = pd.read_excel(os.path.join(args.data_path, file))
+        company, _ = parse_filename(file)
+        create_and_write_dataset(df, company, 'data/')
 
 
 if __name__ == '__main__':
