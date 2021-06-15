@@ -55,7 +55,12 @@ jobs:
         python train.py --dataset twitter-amazonhelp
         python train.py --dataset twitter-applesupport
         python train.py --dataset twitter-spotifycares
-        for x in .save/*":"*; do mv "$x" "${x//:/-}"; done
+        dir_amazonhelp=$(find .save -name \*amazonhelp\* -type d -maxdepth 1 -print | head -n1)
+        python replay_conversations.py --filename='download/training-data/twcs-AmazonHelp-preprocessed-183.xlsx' --model-path=$dir_amazonhelp --epoch 100
+        dir_applesupport=$(find .save -name \*applesupport\* -type d -maxdepth 1 -print | head -n1)
+        python replay_conversations.py --filename='download/training-data/twcs-AppleSupport-preprocessed-116.xlsx' --model-path=$dir_applesupport --epoch 100
+        dir_spotifycares=$(find .save -name \*spotifycares\* -type d -maxdepth 1 -print | head -n1)
+        python replay_conversations.py --filename='download/training-data/twcs-SpotifyCares-preprocessed-56.xlsx' --model-path=$dir_spotifycares --epoch 100
     - name: Archive trained models
       uses: actions/upload-artifact@v2
       with:
