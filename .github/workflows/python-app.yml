@@ -52,6 +52,6 @@ jobs:
     - name: Run
       run: |
         python datasets/twitter_customer_support/format.py --data-path='download/training-data'
-        python train.py --dataset twitter-amazonhelp
-        python train.py --dataset twitter-applesupport
-        python train.py --dataset twitter-spotifycares
+        python train.py --dataset twitter-amazonhelp --max-epochs 25
+        python train.py --dataset twitter-applesupport --max-epochs 25
+        python train.py --dataset twitter-spotifycares --max-epochs 25
