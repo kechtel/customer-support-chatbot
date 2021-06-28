@@ -1,4 +1,7 @@
 # About
+
+![example workflow](https://github.com/kechtel/customer-support-chatbot/actions/workflows/python-app.yml/badge.svg)
+
 Chatbot is a computer program which conducts a conversation in a human-like way. This project implements chatbot which 
 tries to answer users questions as customer support agent. Following customer support chatbots were implemented: 
 [AppleSupport](https://twitter.com/AppleSupport), [AmazonHelp](https://twitter.com/AmazonHelp), 
